@@ -99,7 +99,13 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	// **阶段 3: 检查后端状态，实现依赖关系**
-	if backendDep.Status.ReadyReplicas < 1 {
+	currentBackendDep := &appsv1.Deployment{}
+	err := r.Get(ctx, client.ObjectKey{Name: "blog-backend", Namespace: blog.Namespace}, currentBackendDep)
+	if err != nil {
+		klog.Error(err, "Failed to get current Backend Deployment for status check")
+		return ctrl.Result{}, err
+	}
+	if currentBackendDep.Status.ReadyReplicas < 1 {
 		klog.Info("Waiting for Backend Deployment to become ready...")
 		// 更新状态... (省略)
 		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
