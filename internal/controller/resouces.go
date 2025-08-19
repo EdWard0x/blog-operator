@@ -704,7 +704,7 @@ func (r *BlogReconciler) buildGateway(blog *blogv1alpha1.Blog) *gatewayv1.Gatewa
 						Mode: &terminate,
 						CertificateRefs: []gatewayv1.SecretObjectReference{
 							{
-								Name: "blog-tls",
+								Name: gatewayv1.ObjectName(blog.Spec.TLSSecretName),
 							},
 						},
 					},

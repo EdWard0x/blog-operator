@@ -7,3 +7,10 @@ metadata:
   name: blog-sample
 spec:
   # TODO(user): Add fields here
+  BackendImage: myharbor.com/blog/backend:v1.0.0
+  FrontendImage: myharbor.com/blog/fronted:v1.0.1
+  FrontendCanaryImage: myharbor.com/blog/fronted:v2.0.0
+  Domain: blog.678645.xyz
+  #KibanaDomain: kibana.core.com
+  TLSSecretName: blog-tls
+  ImagePullSecret: harbor-login-secret
