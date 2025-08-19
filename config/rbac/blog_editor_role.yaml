@@ -1,0 +1,33 @@
+# This rule is not used by the project blog-operator itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the blog.678645.xyz.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: blog-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: blog-editor-role
+rules:
+- apiGroups:
+  - blog.678645.xyz
+  resources:
+  - blogs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - blog.678645.xyz
+  resources:
+  - blogs/status
+  verbs:
+  - get

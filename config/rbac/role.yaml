@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - blog.678645.xyz
+  resources:
+  - blogs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - blog.678645.xyz
+  resources:
+  - blogs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - blog.678645.xyz
+  resources:
+  - blogs/status
+  verbs:
+  - get
+  - patch
+  - update
