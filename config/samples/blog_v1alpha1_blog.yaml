@@ -5,6 +5,7 @@ metadata:
     app.kubernetes.io/name: blog-operator
     app.kubernetes.io/managed-by: kustomize
   name: blog-sample
+  namespace: blog
 spec:
   # TODO(user): Add fields here
   backendImage: "myharbor.com/blog/backend:v1.0.0"
