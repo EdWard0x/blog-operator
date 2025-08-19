@@ -337,8 +337,7 @@ func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1
 							Command: []string{
 								"sh",
 								"-c",
-								`|
-								until curl -sSfk -u "elastic:$(ES_PASSWORD)" https://$(ES_HOST):$(ES_PORT); do
+								`until curl -sSfk -u "elastic:$(ES_PASSWORD)" https://$(ES_HOST):$(ES_PORT); do
                 echo "Waiting for Elasticsearch...";
                 sleep 2;
               done
@@ -421,8 +420,7 @@ func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1
 							Command: []string{
 								"sh",
 								"-c",
-								`|
-								until nc -z $(REDIS_HOST) $(REDIS_PORT); do
+								`until nc -z $(REDIS_HOST) $(REDIS_PORT); do
                 echo "Waiting for Redis...";
                 sleep 2;
               done
