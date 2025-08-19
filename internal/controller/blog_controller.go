@@ -185,17 +185,38 @@ func (r *BlogReconciler) CreateOrUpdateDeployment(ctx context.Context, desired *
 		}
 		return err
 	}
-	//if !reflect.DeepEqual(desired.Spec, existing.Spec) {
-	//	klog.FromContext(ctx).Info("Updating existing Deployment", "Deployment.Name", desired.Name)
-	//	existing.Spec = desired.Spec
-	//	return r.Update(ctx, existing)
-	//}
-	//return nil
+	// 3. 如果存在，则进行智能更新
+	// 比较我们关心的字段。如果都不需要更新，就什么都不做，直接返回。
+	needsUpdate := false
 
-	// 简单的更新策略：只更新我们关心的字段，避免与 K8s 其他控制器冲突
-	existing.Spec.Replicas = desired.Spec.Replicas
-	existing.Spec.Template.Spec.Containers[0].Image = desired.Spec.Template.Spec.Containers[0].Image
-	return r.Update(ctx, existing)
+	// 比较副本数
+	if existing.Spec.Replicas != nil && desired.Spec.Replicas != nil && *existing.Spec.Replicas != *desired.Spec.Replicas {
+		klog.Info("Deployment replicas mismatch", "existing", *existing.Spec.Replicas, "desired", *desired.Spec.Replicas)
+		existing.Spec.Replicas = desired.Spec.Replicas
+		needsUpdate = true
+	}
+
+	// 比较镜像
+	// 假设我们只关心第一个容器
+	if len(existing.Spec.Template.Spec.Containers) > 0 && len(desired.Spec.Template.Spec.Containers) > 0 {
+		if existing.Spec.Template.Spec.Containers[0].Image != desired.Spec.Template.Spec.Containers[0].Image {
+			klog.Info("Deployment image mismatch", "existing", existing.Spec.Template.Spec.Containers[0].Image, "desired", desired.Spec.Template.Spec.Containers[0].Image)
+			existing.Spec.Template.Spec.Containers[0].Image = desired.Spec.Template.Spec.Containers[0].Image
+			needsUpdate = true
+		}
+	}
+
+	// 在这里可以继续添加对其他字段的比较，比如 Ports, Env, Resources 等
+
+	// 4. 如果有任何字段需要更新，才执行 Update
+	if needsUpdate {
+		klog.Info("Updating existing Deployment", "Deployment.Name", existing.Name)
+		// 注意：Update 函数需要传入我们修改过的 existing 对象
+		return r.Update(ctx, existing)
+	}
+
+	klog.V(1).Info("Deployment spec is already in sync", "Deployment.Name", existing.Name) // V(1) for verbose logging
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
