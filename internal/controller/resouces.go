@@ -653,7 +653,7 @@ func (r *BlogReconciler) buildFrontendDeployment(blog *blogv1alpha1.Blog, image,
 						VolumeMounts: []corev1.VolumeMount{
 							{
 								Name:      "nginx-config-volume",
-								MountPath: " /etc/nginx/conf.d/",
+								MountPath: "/etc/nginx/conf.d/",
 							},
 						},
 						ReadinessProbe: &corev1.Probe{
