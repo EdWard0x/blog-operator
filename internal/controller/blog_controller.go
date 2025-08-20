@@ -117,12 +117,12 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	// 协调稳定版前端 (v1)
-	frontendV1Dep := r.buildFrontendDeployment(&blog, blog.Spec.FrontendImage, "v1.0.1") // 硬编码版本标签
+	frontendV1Dep := r.buildFrontendDeployment(&blog, blog.Spec.FrontendImage, "v1.0.1", "v1-0-1") // 硬编码版本标签
 	if err := r.reconcileDeployment(ctx, frontendV1Dep); err != nil {
 		klog.Error(err, "Failed to reconcile Frontend v1 Deployment")
 		return ctrl.Result{}, err
 	}
-	frontendV1Svc := r.buildFrontendService(&blog, "v1.0.1")
+	frontendV1Svc := r.buildFrontendService(&blog, "v1.0.1", "v1-0-1")
 	if err := r.reconcileService(ctx, frontendV1Svc); err != nil {
 		klog.Error(err, "Failed to reconcile Frontend v1 Service")
 		return ctrl.Result{}, err
@@ -130,12 +130,12 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	// 协调金丝雀前端 (v2)，如果指定了的话
 	if blog.Spec.FrontendCanaryImage != "" {
-		frontendV2Dep := r.buildFrontendDeployment(&blog, blog.Spec.FrontendCanaryImage, "v2.0.0")
+		frontendV2Dep := r.buildFrontendDeployment(&blog, blog.Spec.FrontendCanaryImage, "v2.0.0", "v2-0-0")
 		if err := r.reconcileDeployment(ctx, frontendV2Dep); err != nil {
 			klog.Error(err, "Failed to reconcile Frontend v2 Deployment")
 			return ctrl.Result{}, err
 		}
-		frontendV2Svc := r.buildFrontendService(&blog, "v2.0.0")
+		frontendV2Svc := r.buildFrontendService(&blog, "v2.0.0", "v2-0-0")
 		if err := r.reconcileService(ctx, frontendV2Svc); err != nil {
 			klog.Error(err, "Failed to reconcile Frontend v2 Service")
 			return ctrl.Result{}, err

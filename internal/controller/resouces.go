@@ -608,9 +608,9 @@ log_format main_ext '[$time_local] "$request" $status $body_bytes_sent '
 	return cm
 }
 
-func (r *BlogReconciler) buildFrontendDeployment(blog *blogv1alpha1.Blog, image, version string) *appsv1.Deployment {
+func (r *BlogReconciler) buildFrontendDeployment(blog *blogv1alpha1.Blog, image, version, name1 string) *appsv1.Deployment {
 	replicas := int32(1)
-	name := "blog-frontend-" + "v1-0-1"
+	name := "blog-frontend-" + name1
 	labels := map[string]string{
 		"app":     "blog-frontend",
 		"version": version,
@@ -696,9 +696,9 @@ func (r *BlogReconciler) buildFrontendDeployment(blog *blogv1alpha1.Blog, image,
 	return dep
 }
 
-func (r *BlogReconciler) buildFrontendService(blog *blogv1alpha1.Blog, version string) *corev1.Service {
+func (r *BlogReconciler) buildFrontendService(blog *blogv1alpha1.Blog, version, name1 string) *corev1.Service {
 
-	name := "blog-frontend-" + "v1-0-1"
+	name := "blog-frontend-" + name1
 	labels := map[string]string{
 		"app":     "blog-frontend",
 		"version": version,
