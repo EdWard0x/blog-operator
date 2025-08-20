@@ -70,6 +70,7 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	// **阶段 1: 检查前置依赖**
 	// 检查是否已手动创建 TLS secret 和 ImagePullSecret
+	// 检查是否已手动创建 pvc
 	// 检查是否已手动安装 MySQL 和 Redis (通过检查 Service)
 
 	// **阶段 2: 协调后端应用**
