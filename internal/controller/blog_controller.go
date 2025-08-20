@@ -66,34 +66,30 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	// 为后续日志添加上下文
-	//log = log.WithValues("blog", req.NamespacedName)
-
 	// --- 协调逻辑 ---
 
 	// **阶段 1: 检查前置依赖**
-	// 检查用户是否已手动创建 TLS secret 和 ImagePullSecret
-	// 检查用户是否已手动安装 MySQL 和 Redis (通过检查 Service)
-	// (这部分逻辑暂时省略以保持核心流程清晰，但生产级 Operator 需要)
+	// 检查是否已手动创建 TLS secret 和 ImagePullSecret
+	// 检查是否已手动安装 MySQL 和 Redis (通过检查 Service)
 
 	// **阶段 2: 协调后端应用**
 	// 协调后端 ConfigMap
 	backendCm := r.buildBackendConfigMap(&blog)
-	if err := r.CreateOrUpdate(ctx, backendCm); err != nil {
+	if err := r.reconcileConfigMap(ctx, backendCm); err != nil {
 		klog.Error(err, "Failed to reconcile Backend ConfigMap")
 		return ctrl.Result{}, err
 	}
 
 	// 协调后端 Service
 	backendSvc := r.buildBackendService(&blog)
-	if err := r.CreateOrUpdate(ctx, backendSvc); err != nil {
+	if err := r.reconcileService(ctx, backendSvc); err != nil {
 		klog.Error(err, "Failed to reconcile Backend Service")
 		return ctrl.Result{}, err
 	}
 
 	// 协调后端 Deployment
 	backendDep := r.buildBackendDeployment(&blog)
-	if err := r.CreateOrUpdateDeployment(ctx, backendDep); err != nil {
+	if err := r.reconcileDeployment(ctx, backendDep); err != nil {
 		klog.Error(err, "Failed to reconcile Backend Deployment")
 		return ctrl.Result{}, err
 	}
@@ -115,19 +111,19 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// **阶段 4: 协调前端应用 (只有后端 Ready 后才执行)**
 	// 协调前端 ConfigMap
 	frontendCm := r.buildFrontendConfigMap(&blog)
-	if err := r.CreateOrUpdate(ctx, frontendCm); err != nil {
+	if err := r.reconcileConfigMap(ctx, frontendCm); err != nil {
 		klog.Error(err, "Failed to reconcile Frontend ConfigMap")
 		return ctrl.Result{}, err
 	}
 
 	// 协调稳定版前端 (v1)
 	frontendV1Dep := r.buildFrontendDeployment(&blog, blog.Spec.FrontendImage, "v1.0.1") // 硬编码版本标签
-	if err := r.CreateOrUpdateDeployment(ctx, frontendV1Dep); err != nil {
+	if err := r.reconcileDeployment(ctx, frontendV1Dep); err != nil {
 		klog.Error(err, "Failed to reconcile Frontend v1 Deployment")
 		return ctrl.Result{}, err
 	}
 	frontendV1Svc := r.buildFrontendService(&blog, "v1.0.1")
-	if err := r.CreateOrUpdate(ctx, frontendV1Svc); err != nil {
+	if err := r.reconcileService(ctx, frontendV1Svc); err != nil {
 		klog.Error(err, "Failed to reconcile Frontend v1 Service")
 		return ctrl.Result{}, err
 	}
@@ -135,12 +131,12 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// 协调金丝雀前端 (v2)，如果指定了的话
 	if blog.Spec.FrontendCanaryImage != "" {
 		frontendV2Dep := r.buildFrontendDeployment(&blog, blog.Spec.FrontendCanaryImage, "v2.0.0")
-		if err := r.CreateOrUpdateDeployment(ctx, frontendV2Dep); err != nil {
+		if err := r.reconcileDeployment(ctx, frontendV2Dep); err != nil {
 			klog.Error(err, "Failed to reconcile Frontend v2 Deployment")
 			return ctrl.Result{}, err
 		}
 		frontendV2Svc := r.buildFrontendService(&blog, "v2.0.0")
-		if err := r.CreateOrUpdate(ctx, frontendV2Svc); err != nil {
+		if err := r.reconcileService(ctx, frontendV2Svc); err != nil {
 			klog.Error(err, "Failed to reconcile Frontend v2 Service")
 			return ctrl.Result{}, err
 		}
@@ -149,14 +145,14 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// **阶段 5: 协调网络资源**
 	// 协调 Gateway
 	gateway := r.buildGateway(&blog)
-	if err := r.CreateOrUpdate(ctx, gateway); err != nil {
+	if err := r.reconcileGateway(ctx, gateway); err != nil {
 		klog.Error(err, "Failed to reconcile Gateway")
 		return ctrl.Result{}, err
 	}
 
 	// 协调 HTTPRoute
 	httpRoute := r.buildHTTPRoute(&blog)
-	if err := r.CreateOrUpdate(ctx, httpRoute); err != nil {
+	if err := r.reconcileHTTPRoute(ctx, httpRoute); err != nil {
 		klog.Error(err, "Failed to reconcile HTTPRoute")
 		return ctrl.Result{}, err
 	}
@@ -166,21 +162,37 @@ func (r *BlogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return ctrl.Result{}, nil
 }
 
-// **自定义的 CreateOrUpdate 辅助函数**
-// Kubebuilder 默认没有 CreateOrUpdate，我们需要自己写一个简单的包装
-func (r *BlogReconciler) CreateOrUpdate(ctx context.Context, obj client.Object) error {
-	err := r.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+// SetupWithManager sets up the controller with the Manager.
+func (r *BlogReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&blogv1alpha1.Blog{}).
+		//Named("blog").
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&gatewayv1.HTTPRoute{}).
+		// Gateway 在 istio-system, 不能用 Owns，需要用 Watches
+		// Watches(&gatewayv1.Gateway{}, ...). // 暂时简化，不 watch Gateway
+		Complete(r)
+}
+
+func (r *BlogReconciler) reconcileConfigMap(ctx context.Context, cm *corev1.ConfigMap) error {
+	existing := &corev1.ConfigMap{}
+
+	err := r.Get(ctx, client.ObjectKeyFromObject(cm), existing)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return r.Create(ctx, obj)
+			klog.FromContext(ctx).Info("Creating a new ConfigMap", "ConfigMap.Name", cm.Name)
+			return r.Create(ctx, cm)
 		}
 		return err
 	}
-	return r.Update(ctx, obj)
+
+	klog.V(1).Info("ConfigMap spec is already in sync", "ConfigMap.Name", existing.Name) // V(1) for verbose logging
+	return nil
 }
 
-// CreateOrUpdateDeployment 专门处理 Deployment，因为其 spec 经常变化
-func (r *BlogReconciler) CreateOrUpdateDeployment(ctx context.Context, desired *appsv1.Deployment) error {
+func (r *BlogReconciler) reconcileDeployment(ctx context.Context, desired *appsv1.Deployment) error {
 	existing := &appsv1.Deployment{}
 
 	err := r.Get(ctx, client.ObjectKeyFromObject(desired), existing)
@@ -192,7 +204,7 @@ func (r *BlogReconciler) CreateOrUpdateDeployment(ctx context.Context, desired *
 		return err
 	}
 	// 3. 如果存在，则进行智能更新
-	// 比较我们关心的字段。如果都不需要更新，就什么都不做，直接返回。
+	// 比较关心的字段。如果都不需要更新，就什么都不做，直接返回。
 	needsUpdate := false
 
 	// 比较副本数
@@ -203,7 +215,6 @@ func (r *BlogReconciler) CreateOrUpdateDeployment(ctx context.Context, desired *
 	}
 
 	// 比较镜像
-	// 假设我们只关心第一个容器
 	if len(existing.Spec.Template.Spec.Containers) > 0 && len(desired.Spec.Template.Spec.Containers) > 0 {
 		if existing.Spec.Template.Spec.Containers[0].Image != desired.Spec.Template.Spec.Containers[0].Image {
 			klog.Info("Deployment image mismatch", "existing", existing.Spec.Template.Spec.Containers[0].Image, "desired", desired.Spec.Template.Spec.Containers[0].Image)
@@ -225,16 +236,50 @@ func (r *BlogReconciler) CreateOrUpdateDeployment(ctx context.Context, desired *
 	return nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *BlogReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&blogv1alpha1.Blog{}).
-		//Named("blog").
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&gatewayv1.HTTPRoute{}).
-		// Gateway 在 istio-system, 不能用 Owns，需要用 Watches
-		// Watches(&gatewayv1.Gateway{}, ...). // 暂时简化，不 watch Gateway
-		Complete(r)
+func (r *BlogReconciler) reconcileService(ctx context.Context, svc *corev1.Service) error {
+	existing := &corev1.Service{}
+
+	err := r.Get(ctx, client.ObjectKeyFromObject(svc), existing)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			klog.FromContext(ctx).Info("Creating a new Service", "Service.Name", svc.Name)
+			return r.Create(ctx, svc)
+		}
+		return err
+	}
+
+	klog.V(1).Info("Service spec is already in sync", "Service.Name", existing.Name) // V(1) for verbose logging
+	return nil
+}
+
+func (r *BlogReconciler) reconcileGateway(ctx context.Context, gateway *gatewayv1.Gateway) error {
+	existing := &gatewayv1.Gateway{}
+
+	err := r.Get(ctx, client.ObjectKeyFromObject(gateway), existing)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			klog.FromContext(ctx).Info("Creating a new Gateway", "Gateway.Name", gateway.Name)
+			return r.Create(ctx, gateway)
+		}
+		return err
+	}
+
+	klog.V(1).Info("Gateway spec is already in sync", "Gateway.Name", existing.Name) // V(1) for verbose logging
+	return nil
+}
+
+func (r *BlogReconciler) reconcileHTTPRoute(ctx context.Context, route *gatewayv1.HTTPRoute) error {
+	existing := &gatewayv1.HTTPRoute{}
+
+	err := r.Get(ctx, client.ObjectKeyFromObject(route), existing)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			klog.FromContext(ctx).Info("Creating a new HTTPRoute", "HTTPRoute.Name", route.Name)
+			return r.Create(ctx, route)
+		}
+		return err
+	}
+
+	klog.V(1).Info("HTTPRoute spec is already in sync", "HTTPRoute.Name", existing.Name) // V(1) for verbose logging
+	return nil
 }

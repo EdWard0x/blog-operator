@@ -25,7 +25,6 @@ import (
 // --- Backend Resources ---
 
 func (r *BlogReconciler) buildBackendConfigMap(blog *blogv1alpha1.Blog) *corev1.ConfigMap {
-	// ... 将您的 backend.txt 中的 ConfigMap 内容翻译成 Go 结构体 ...
 	var configYaml string = `
     captcha:
         height: 80
@@ -152,7 +151,6 @@ func (r *BlogReconciler) buildBackendConfigMap(blog *blogv1alpha1.Blog) *corev1.
 }
 
 func (r *BlogReconciler) buildBackendService(blog *blogv1alpha1.Blog) *corev1.Service {
-	// ... 将您的 backend.txt 中的 Service 内容翻译成 Go 结构体 ...
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "blog-backend",
@@ -177,7 +175,7 @@ func (r *BlogReconciler) buildBackendService(blog *blogv1alpha1.Blog) *corev1.Se
 
 func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1.Deployment {
 	//labels := labelsForBlog(blog.Name)
-	// 正确定义 Resource.Quantity
+
 	//cpu100m := resource.MustParse("100m")
 	//mem128Mi := resource.MustParse("128Mi")
 
@@ -517,9 +515,7 @@ func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      5,
 						},
-						// ... 您的 readiness/liveness probes, resources, volumeMounts ...
 					}},
-					// ... 您的 initContainers, volumes ...
 					Volumes: []corev1.Volume{
 						{
 							Name: "persistent-storage",
@@ -635,8 +631,63 @@ func (r *BlogReconciler) buildFrontendDeployment(blog *blogv1alpha1.Blog, image,
 						Name:  "frontend",
 						Image: image,
 						Ports: []corev1.ContainerPort{{ContainerPort: 80}},
-						// ... probes, resources, etc.
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU: resource.Quantity{
+									Format: "200M",
+								},
+								corev1.ResourceMemory: resource.Quantity{
+									Format: "512Mi",
+								},
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU: resource.Quantity{
+									Format: "100M",
+								},
+								corev1.ResourceMemory: resource.Quantity{
+									Format: "256Mi",
+								},
+							},
+						},
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "nginx-config-volume",
+								MountPath: " /etc/nginx/conf.d/",
+							},
+						},
+						ReadinessProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/",
+									Port: intstr.FromInt(80),
+								},
+							},
+							InitialDelaySeconds: 5,
+							PeriodSeconds:       10,
+						},
+						LivenessProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/",
+									Port: intstr.FromInt(80),
+								},
+							},
+							InitialDelaySeconds: 15,
+							PeriodSeconds:       20,
+						},
 					}},
+					Volumes: []corev1.Volume{
+						{
+							Name: "nginx-config-volume",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "blog-frontend-nginx-config",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -669,9 +720,7 @@ func (r *BlogReconciler) buildFrontendService(blog *blogv1alpha1.Blog, version s
 // --- Network Resources ---
 
 func (r *BlogReconciler) buildGateway(blog *blogv1alpha1.Blog) *gatewayv1.Gateway {
-	// ... 将您的 Gateway YAML 翻译成 Go ...
 	hostname := gatewayv1.Hostname(blog.Spec.Domain)
-	// **使用辅助函数来创建指针**
 	allNamespaces := gatewayv1.NamespacesFromAll
 	terminate := gatewayv1.TLSModeTerminate
 	gw := &gatewayv1.Gateway{
@@ -721,7 +770,7 @@ func (r *BlogReconciler) buildGateway(blog *blogv1alpha1.Blog) *gatewayv1.Gatewa
 }
 
 func (r *BlogReconciler) buildHTTPRoute(blog *blogv1alpha1.Blog) *gatewayv1.HTTPRoute {
-	// ... 将您的 HTTPRoute YAML 翻译成 Go ...
+
 	// 这里可以加入逻辑，如果 canary image 存在，就创建带 canary 规则的 route
 	var namespace gatewayv1.Namespace = "istio-system"
 	pf := gatewayv1.PathMatchPathPrefix
@@ -762,7 +811,38 @@ func (r *BlogReconciler) buildHTTPRoute(blog *blogv1alpha1.Blog) *gatewayv1.HTTP
 							},
 						},
 					},
-					BackendRefs: []gatewayv1.HTTPBackendRef{},
+					BackendRefs: []gatewayv1.HTTPBackendRef{
+						{
+							BackendRef: gatewayv1.BackendRef{
+								BackendObjectReference: gatewayv1.BackendObjectReference{
+									Name: "blog-frontend-v1-0-1",
+									//Port: (*gatewayv1.PortNumber)(pointer.Int32(80)),
+									Port: (*gatewayv1.PortNumber)(int32(80)),
+								},
+							},
+						},
+					},
+				},
+				{
+					Matches: []gatewayv1.HTTPRouteMatch{
+						{
+							Path: &gatewayv1.HTTPPathMatch{
+								Type:  &pf,
+								Value: pointer.String("/"),
+								//Value: &v,
+							},
+						},
+					},
+					BackendRefs: []gatewayv1.HTTPBackendRef{
+						{
+							BackendRef: gatewayv1.BackendRef{
+								BackendObjectReference: gatewayv1.BackendObjectReference{
+									Name: "blog-frontend-v2-0-1",
+									Port: (*gatewayv1.PortNumber)(pointer.Int32(80)),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
