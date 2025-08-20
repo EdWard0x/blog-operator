@@ -11,7 +11,7 @@ spec:
   backendImage: "myharbor.com/blog/backend:v1.0.0"
   frontendImage: "myharbor.com/blog/fronted:v1.0.1"
   frontendCanaryImage: "myharbor.com/blog/fronted:v2.0.0"
-  domain: "blog.678645.xyz"
+  domain:
   kibanaDomain: "kibana.core.com"
   tlsSecretName: "blog-tls"
   imagePullSecret: "harbor-login-secret"
