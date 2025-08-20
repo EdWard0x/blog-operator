@@ -837,7 +837,7 @@ func (r *BlogReconciler) buildHTTPRoute(blog *blogv1alpha1.Blog) *gatewayv1.HTTP
 						{
 							BackendRef: gatewayv1.BackendRef{
 								BackendObjectReference: gatewayv1.BackendObjectReference{
-									Name: "blog-frontend-v2-0-1",
+									Name: "blog-frontend-v2-0-0",
 									Port: (*gatewayv1.PortNumber)(pointer.Int32(80)),
 								},
 							},
