@@ -628,10 +628,10 @@ func (r *BlogReconciler) buildFrontendDeployment(blog *blogv1alpha1.Blog, image,
 				ObjectMeta: metav1.ObjectMeta{Labels: labels},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Name:    "frontend",
-						Image:   image,
-						Command: []string{"/bin/sh", "-c", "sleep 3600"},
-						Ports:   []corev1.ContainerPort{{ContainerPort: 80}},
+						Name:  "frontend",
+						Image: image,
+						//Command: []string{"/bin/sh", "-c", "sleep 3600"},
+						Ports: []corev1.ContainerPort{{ContainerPort: 80}},
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								corev1.ResourceCPU: resource.Quantity{
