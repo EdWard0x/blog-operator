@@ -217,20 +217,12 @@ func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1
 							Name: "check-mysql",
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
-									corev1.ResourceCPU: resource.Quantity{
-										Format: "500m",
-									},
-									corev1.ResourceMemory: resource.Quantity{
-										Format: "256Mi",
-									},
+									corev1.ResourceCPU:    resource.MustParse("500m"),
+									corev1.ResourceMemory: resource.MustParse("256Mi"),
 								},
 								Requests: corev1.ResourceList{
-									corev1.ResourceCPU: resource.Quantity{
-										Format: "100M",
-									},
-									corev1.ResourceMemory: resource.Quantity{
-										Format: "128Mi",
-									},
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("128Mi"),
 								},
 							},
 							Image: "mysql:8.0",
@@ -315,20 +307,12 @@ func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1
 							Name: "check-es",
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
-									corev1.ResourceCPU: resource.Quantity{
-										Format: "500m",
-									},
-									corev1.ResourceMemory: resource.Quantity{
-										Format: "256Mi",
-									},
+									corev1.ResourceCPU:    resource.MustParse("500m"),
+									corev1.ResourceMemory: resource.MustParse("256Mi"),
 								},
 								Requests: corev1.ResourceList{
-									corev1.ResourceCPU: resource.Quantity{
-										Format: "100M",
-									},
-									corev1.ResourceMemory: resource.Quantity{
-										Format: "128Mi",
-									},
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("128Mi"),
 								},
 							},
 							Image: "curlimages/curl",
@@ -398,20 +382,12 @@ func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1
 							Name: "check-redis",
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
-									corev1.ResourceCPU: resource.Quantity{
-										Format: "500m",
-									},
-									corev1.ResourceMemory: resource.Quantity{
-										Format: "256Mi",
-									},
+									corev1.ResourceCPU:    resource.MustParse("500m"),
+									corev1.ResourceMemory: resource.MustParse("256Mi"),
 								},
 								Requests: corev1.ResourceList{
-									corev1.ResourceCPU: resource.Quantity{
-										Format: "100M",
-									},
-									corev1.ResourceMemory: resource.Quantity{
-										Format: "128Mi",
-									},
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("128Mi"),
 								},
 							},
 							Image: "busybox",
@@ -457,20 +433,12 @@ func (r *BlogReconciler) buildBackendDeployment(blog *blogv1alpha1.Blog) *appsv1
 						Ports: []corev1.ContainerPort{{ContainerPort: 8080}},
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
-								corev1.ResourceCPU: resource.Quantity{
-									Format: "2",
-								},
-								corev1.ResourceMemory: resource.Quantity{
-									Format: "1Gi",
-								},
+								corev1.ResourceCPU:    resource.MustParse("2"),
+								corev1.ResourceMemory: resource.MustParse("1Gi"),
 							},
 							Requests: corev1.ResourceList{
-								corev1.ResourceCPU: resource.Quantity{
-									Format: "1",
-								},
-								corev1.ResourceMemory: resource.Quantity{
-									Format: "512Mi",
-								},
+								corev1.ResourceCPU:    resource.MustParse("1"),
+								corev1.ResourceMemory: resource.MustParse("512Mi"),
 							},
 						},
 						Command: com,
@@ -634,20 +602,12 @@ func (r *BlogReconciler) buildFrontendDeployment(blog *blogv1alpha1.Blog, image,
 						Ports: []corev1.ContainerPort{{ContainerPort: 80}},
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
-								corev1.ResourceCPU: resource.Quantity{
-									Format: "200M",
-								},
-								corev1.ResourceMemory: resource.Quantity{
-									Format: "512Mi",
-								},
+								corev1.ResourceCPU:    resource.MustParse("200m"),
+								corev1.ResourceMemory: resource.MustParse("512Mi"),
 							},
 							Requests: corev1.ResourceList{
-								corev1.ResourceCPU: resource.Quantity{
-									Format: "100M",
-								},
-								corev1.ResourceMemory: resource.Quantity{
-									Format: "256Mi",
-								},
+								corev1.ResourceCPU:    resource.MustParse("100m"),
+								corev1.ResourceMemory: resource.MustParse("256Mi"),
 							},
 						},
 						VolumeMounts: []corev1.VolumeMount{
