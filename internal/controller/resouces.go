@@ -37,7 +37,7 @@ func (r *BlogReconciler) buildBackendConfigMap(blog *blogv1alpha1.Blog) *corev1.
         port: 465
         from: 15853696101@163.com
         nickname: Admin
-        secret: XQvPQ32rneDYpLDn
+        secret: xxx
         is_ssl: true
     es:
         url: https://es-cluster-es-http:9200
